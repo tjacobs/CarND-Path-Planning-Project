@@ -196,8 +196,8 @@ int main() {
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     
-    auto sdata = string(data).substr(0, length);
-    cout << sdata << endl;
+//    auto sdata = string(data).substr(0, length);
+//    cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
@@ -217,7 +217,7 @@ int main() {
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
-            cout << "X: " << car_x << "  Y: " << car_y;
+            cout << "X: " << car_x << "  Y: " << car_y << endl;
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -234,9 +234,11 @@ int main() {
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
-            // Define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-            next_x_vals.push_back(10.0);
-            next_y_vals.push_back(10.0);
+            // Define a path made up of (x, y) points that the car will visit sequentially every .02 seconds
+            for(int i=0; i<10; i++) {
+              next_x_vals.push_back(car_x + 0.2);
+              next_y_vals.push_back(car_y + 0.01);
+            }
 
             // Send 
           	msgJson["next_x"] = next_x_vals;
