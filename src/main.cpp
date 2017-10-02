@@ -296,7 +296,7 @@ int main() {
               waypoints_y.push_back(reference_y);
             }
 
-            // Add points 30m, 60m, and 90m out.
+            // Add points 60m, 80m, and 90m out for smooth lane changing at top speed.
             vector<double> next_waypoint_0 = getXY(car_s+60, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             vector<double> next_waypoint_1 = getXY(car_s+80, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             vector<double> next_waypoint_2 = getXY(car_s+90, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -347,7 +347,7 @@ int main() {
             double x_so_far = 0;
             for(int i = 0; i <= 50 - previous_path_size; i++) {
 
-              // Caluclate this point
+              // Calculate this point
               double x_point = x_so_far + horizon/n;
               double y_point = s(x_point);
               x_so_far = x_point;
@@ -375,21 +375,13 @@ int main() {
               // Is the other car within our lane?
               if(other_car_d > our_car_d - 2 && other_car_d < our_car_d + 2) {
 
-                // Get its speed
-//                double other_car_vx = sensor_fusion[i][3];
-//                double other_car_vy = sensor_fusion[i][4];
-//                double other_car_speed = sqrt(other_car_vx*other_car_vx + other_car_vy*other_car_vy);
-
-                // Where will the other car be next frame?
-                //other_car_s += ((double)previous_path_size * 0.02 * other_car_speed);
-
                 // Check the car's s position, is it too close up front?
                 if(other_car_s > car_s && other_car_s < car_s + 40.0) {
 
                   // Slow down
                   target_speed_factor = 0.5;
 
-                // Check the car's s position, is it way too close up front?
+                  // Check the car's s position, is it way too close up front?
                   if(other_car_s < car_s + 20.0) {
 
                     // Really slow down
