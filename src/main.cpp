@@ -267,7 +267,7 @@ int main() {
               double reference_y_previous = previous_path_y[previous_path_size-2];
 
               // Calculate yaw
-              reference_yaw = atan2(reference_x - reference_x_previous, reference_y - reference_y_previous);
+              reference_yaw = atan2(reference_y - reference_y_previous, reference_x - reference_x_previous);
 
               // Our waypoints has two points, one where the car is, one where it was.
               waypoints_x.push_back(reference_x_previous);
