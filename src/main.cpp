@@ -192,11 +192,17 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
+  // How fast should we be going as factor of speed limit?
+  double target_speed_factor = 1.0;
+
+
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-      double s_val = 0;
+
+    // Which lane are we in?
+    int current_lane = 1;
 
 //    auto sdata = string(data).substr(0, length);
 //    cout << sdata << endl;
@@ -232,13 +238,80 @@ int main() {
           	// Sensor Fusion data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
+            // How much of the previous path is there still to go?
+            int previous_path_size = previous_path_x.size();
+
+            // Our waypoints
+            vector<double> waypoints_x;
+            vector<double> waypoints_y;
+
+            // Our reference
+            double reference_x = car_x;
+            double reference_y = car_y;
+            double reference_yaw = deg2rad(car_yaw);
+
+            // If just starting out
+            if( previous_path_size < 2 ) {
+              double previous_car_x = car_x - cos(car_yaw);
+              double previous_car_y = car_y - sin(car_yaw);
+
+              // Our waypoints has two points, one where the car is, one where it was.
+              waypoints_x.push_back(previous_car_x);
+              waypoints_y.push_back(previous_car_y);
+              waypoints_x.push_back(car_x);
+              waypoints_y.push_back(car_y);
+            }
+            else {
+              reference_x = previous_path_x[previous_path_size-1];
+              reference_y = previous_path_y[previous_path_size-1];
+              double reference_x_previous = previous_path_x[previous_path_size-2];
+              double reference_y_previous = previous_path_y[previous_path_size-2];
+
+              // Calculate yaw
+              reference_yaw = atan2(reference_x - reference_x_previous, reference_y - reference_y_previous);
+
+              // Our waypoints has two points, one where the car is, one where it was.
+              waypoints_x.push_back(reference_x_previous);
+              waypoints_y.push_back(reference_y_previous);
+              waypoints_x.push_back(reference_x);
+              waypoints_y.push_back(reference_y);
+            }
+
+            // Add points 30m, 60m, and 90m out.
+            vector<double> next_waypoint_0 = getXY(car_s+30, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_waypoint_1 = getXY(car_s+60, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_waypoint_2 = getXY(car_s+90, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            waypoints_x.push_back(next_waypoint_0[0]);
+            waypoints_y.push_back(next_waypoint_0[1]);
+            waypoints_x.push_back(next_waypoint_1[0]);
+            waypoints_y.push_back(next_waypoint_1[1]);
+            waypoints_x.push_back(next_waypoint_2[0]);
+            waypoints_y.push_back(next_waypoint_2[1]);
+
+            // Recenter to car coords
+            for(int i = 0; i < waypoints_x.size(); i++) {
+              double shift_x = waypoints_x[i] - reference_x;
+              double shift_y = waypoints_y[i] - reference_y;
+              waypoints_x[i] = (shift_x * cos(-reference_yaw) - shift_y * sin(-reference_yaw));
+              waypoints_y[i] = (shift_x * sin(-reference_yaw) + shift_y * cos(-reference_yaw));
+            }
+
+            // Our spline
+            tk::spline s;
+            s.set_points(waypoints_x, waypoints_y);
+
             // Plot the path
-          	json msgJson;
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
+            // Load up the future path with what's left of the previous path
+            for(int i = 0; i < previous_path_size; i++) {
+              next_x_vals.push_back(previous_path_x[i]);
+              next_y_vals.push_back(previous_path_y[i]);              
+            }
+
             // Define a path made up of (x, y) points that the car will visit sequentially every .02 seconds
-            double s_increment = 0.42;
+            double s_increment = 0.42 ;//* target_speed_factor;
             for(int i=0; i<50; i++) {
               double next_s = car_s + (i+1)*s_increment;
               double next_d = 6;
@@ -250,6 +323,7 @@ int main() {
             }
 
             // Send 
+            json msgJson;
           	msgJson["next_x"] = next_x_vals;
           	msgJson["next_y"] = next_y_vals;
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
