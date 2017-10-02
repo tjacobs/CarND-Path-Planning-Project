@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using namespace std;
 
@@ -195,7 +196,8 @@ int main() {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-    
+      double s_val = 0;
+
 //    auto sdata = string(data).substr(0, length);
 //    cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
@@ -230,14 +232,21 @@ int main() {
           	// Sensor Fusion data, a list of all other cars on the same side of the road.
           	auto sensor_fusion = j[1]["sensor_fusion"];
 
+            // Plot the path
           	json msgJson;
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
 
             // Define a path made up of (x, y) points that the car will visit sequentially every .02 seconds
-            for(int i=0; i<10; i++) {
-              next_x_vals.push_back(car_x + 0.2);
-              next_y_vals.push_back(car_y + 0.01);
+            double s_increment = 0.42;
+            for(int i=0; i<50; i++) {
+              double next_s = car_s + (i+1)*s_increment;
+              double next_d = 6;
+
+              // Map back to world X, Y
+              vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+              next_x_vals.push_back(xy[0]);
+              next_y_vals.push_back(xy[1]);
             }
 
             // Send 
