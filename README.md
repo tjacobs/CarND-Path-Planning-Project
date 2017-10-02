@@ -64,12 +64,44 @@ That way, we can change `target_speed_factor` and the car will slowly adjust its
 
 So now we have a smooth start, but we're still not detecting other cars and avoiding them or planning our path. So, the next step is to see when a car is coming up too close to us ahead of us in our lane.
 
+To do this, we check the `sensor_fusion` given back to us from the simulator, for cars in our lane:
 
+```
+    for(int i = 0; i < sensor_fusion.size(); i++) {
+      double other_car_s = sensor_fusion[i][5]; // 5 is frenet 's' value
+      double other_car_d = sensor_fusion[i][6]; // 6 is frenet 'd' value
+      double our_car_d = 2 + 4 * current_lane;
 
+      // Is the other car within our lane?
+      if(other_car_d > our_car_d - 2 && other_car_d < our_car_d + 2) {
 
+        // Check the car's s position, is it too close up front?
+        if(other_car_s > car_s && other_car_s < car_s + 40.0) {
 
-![](path.gif)
+          // Slow down
+          target_speed_factor = 0.5;
+```
 
+So first thing we do when we see another car ahead of us is slow down to half speed. This helps with not hitting the slow car ahead of us.
 
+Then we consider changing lanes. The logic here is pretty simple. Depending on which lane we're in, we check the available lanes to us. There are three lanes: If left, then we check right, if middle, then we check left and right, and if right, we check left.
 
+```
+    // Check left and right lanes, make sure nothing is in the lane
+    bool car = check_lane(0, car_s, sensor_fusion);
+    if(!car){
+      current_lane = 0;
+    }
+```
 
+This simple path planning approach works surprisingly well, if there is a car in the lane where we want to change into, we simply hang back and a speed between half and full behind the slow car, and when a lane is available to change into, we change into it. 
+
+I've also added an additional safety measure, where if the car ahead of us is less than 20m ahead of us, then we slow down to 20% speed. This helps when cars have cut us off and jumped in front of our car and other unexpected situations, so slow right down when a car is very close ahead of us.
+
+You can see the lane changing in action here.
+
+![](pass.gif)
+
+The car has completed two laps of the track using this method, with a total distance with no incident of over 8 miles.
+
+The path planning approach does sometimes get stuck in situations where it is boxed in behind a car in front and to the side of it, where it could be more intellegent and slow down and go around the offending vehicles. It could also choose the lane with the most clear space ahead of it, instead of just any available lane. This is a project for another day.
