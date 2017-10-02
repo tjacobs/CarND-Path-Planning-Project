@@ -383,11 +383,20 @@ int main() {
                 // Where will the other car be next frame?
                 //other_car_s += ((double)previous_path_size * 0.02 * other_car_speed);
 
+                // Check the car's s position, is it way too close up front?
+
                 // Check the car's s position, is it too close up front?
-                if(other_car_s > car_s && other_car_s < car_s + 30.0) {
+                if(other_car_s > car_s && other_car_s < car_s + 40.0) {
 
                   // Slow down
                   target_speed_factor = 0.5;
+
+                  // Really slow down
+                  if(other_car_s < car_s + 20.0) {
+
+                    // Slow down
+                    target_speed_factor = 0.2;
+                  }
 
                   // If we're in the middle lane, check either side
                   if(current_lane == 1) {
