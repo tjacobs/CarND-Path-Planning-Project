@@ -165,7 +165,7 @@ bool check_lane(int check_lane, double car_s, vector<vector<double>> sensor_fusi
     // Is a car within that lane?
     if(check_car_s > car_s - 10.0 && check_car_s < car_s + 20.0) {
       if(check_car_d > check_d - 2 && check_car_d < check_d + 2) {
-        printf("Oh noes.\n");
+        //printf("Oh noes.\n");
         car = true;
       }
     }
@@ -244,7 +244,7 @@ int main() {
           	double car_d = j[1]["d"];
           	double car_yaw = j[1]["yaw"];
           	double car_speed = j[1]["speed"];
-            cout << "X: " << car_x << "  Y: " << car_y << endl;
+            //cout << "X: " << car_x << "  Y: " << car_y << endl;
 
           	// Previous path data given to the Planner
           	auto previous_path_x = j[1]["previous_path_x"];
@@ -297,8 +297,8 @@ int main() {
             }
 
             // Add points 30m, 60m, and 90m out.
-            vector<double> next_waypoint_0 = getXY(car_s+30, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            vector<double> next_waypoint_1 = getXY(car_s+60, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_waypoint_0 = getXY(car_s+60, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            vector<double> next_waypoint_1 = getXY(car_s+80, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             vector<double> next_waypoint_2 = getXY(car_s+90, (2+4*current_lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
             waypoints_x.push_back(next_waypoint_0[0]);
             waypoints_y.push_back(next_waypoint_0[1]);
@@ -383,18 +383,16 @@ int main() {
                 // Where will the other car be next frame?
                 //other_car_s += ((double)previous_path_size * 0.02 * other_car_speed);
 
-                // Check the car's s position, is it way too close up front?
-
                 // Check the car's s position, is it too close up front?
                 if(other_car_s > car_s && other_car_s < car_s + 40.0) {
 
                   // Slow down
                   target_speed_factor = 0.5;
 
-                  // Really slow down
+                // Check the car's s position, is it way too close up front?
                   if(other_car_s < car_s + 20.0) {
 
-                    // Slow down
+                    // Really slow down
                     target_speed_factor = 0.2;
                   }
 
