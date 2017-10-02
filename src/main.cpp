@@ -154,6 +154,25 @@ vector<double> getXY(double s, double d, vector<double> maps_s, vector<double> m
 	return {x, y};
 }
 
+bool check_lane(int check_lane, double car_s, vector<vector<double>> sensor_fusion) {
+  // Check to see if a car is in the lane
+  bool car = false;
+  for(int j = 0; j < sensor_fusion.size(); j++) {
+    double check_car_s = sensor_fusion[j][5]; // 5 is frenet 's' value
+    double check_car_d = sensor_fusion[j][6]; // 6 is frenet 'd' value
+    double check_d = 2 + 4 * check_lane;
+
+    // Is a car within that lane?
+    if(check_car_s > car_s - 10.0 && check_car_s < car_s + 20.0) {
+      if(check_car_d > check_d - 2 && check_car_d < check_d + 2) {
+        printf("Oh noes.\n");
+        car = true;
+      }
+    }
+  }
+  return car;
+}
+
 int main() {
   uWS::Hub h;
 
@@ -197,8 +216,9 @@ int main() {
 
   // How fast should we be going as factor of speed limit?
   double target_speed_factor = 1.0;
+  double current_speed_factor = 0.1;
 
-  h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &current_lane, &target_speed_factor](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &current_lane, &target_speed_factor, &current_speed_factor](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -295,6 +315,14 @@ int main() {
               waypoints_y[i] = (shift_x * sin(-reference_yaw) + shift_y * cos(-reference_yaw));
             }
 
+            // If our speed is too slow, speed up
+            if(current_speed_factor < target_speed_factor) {
+              current_speed_factor += 0.01;
+            }
+            else if(current_speed_factor > target_speed_factor) {
+              current_speed_factor -= 0.01;
+            }
+
             // Our spline
             tk::spline s;
             s.set_points(waypoints_x, waypoints_y);
@@ -315,7 +343,7 @@ int main() {
             double horizon_distance = sqrt(horizon*horizon + horizon_y*horizon_y); // Good old Pythag
 
             // Split our distance to horizon into n points 
-            double n = horizon_distance / (0.02 * 49.0/2.24);
+            double n = horizon_distance / (0.02 * current_speed_factor * 49.0/2.24);
             double x_so_far = 0;
             for(int i = 0; i <= 50 - previous_path_size; i++) {
 
@@ -335,6 +363,66 @@ int main() {
               // Add 'em
               next_x_vals.push_back(x_point);
               next_y_vals.push_back(y_point);
+            }
+
+            // Check sensor fusion for other cars
+            target_speed_factor = 1.0;
+            for(int i = 0; i < sensor_fusion.size(); i++) {
+              double other_car_s = sensor_fusion[i][5]; // 5 is frenet 's' value
+              double other_car_d = sensor_fusion[i][6]; // 6 is frenet 'd' value
+              double our_car_d = 2 + 4 * current_lane;
+
+              // Is the other car within our lane?
+              if(other_car_d > our_car_d - 2 && other_car_d < our_car_d + 2) {
+
+                // Get its speed
+//                double other_car_vx = sensor_fusion[i][3];
+//                double other_car_vy = sensor_fusion[i][4];
+//                double other_car_speed = sqrt(other_car_vx*other_car_vx + other_car_vy*other_car_vy);
+
+                // Where will the other car be next frame?
+                //other_car_s += ((double)previous_path_size * 0.02 * other_car_speed);
+
+                // Check the car's s position, is it too close up front?
+                if(other_car_s > car_s && other_car_s < car_s + 30.0) {
+
+                  // Slow down
+                  target_speed_factor = 0.5;
+
+                  // If we're in the middle lane, check either side
+                  if(current_lane == 1) {
+
+                    // Check left and right lanes, make sure nothing is in the lane
+                    bool car = check_lane(0, car_s, sensor_fusion);
+                    if(!car){
+                      current_lane = 0;
+                    }
+                    else {
+                      bool car = check_lane(2, car_s, sensor_fusion);
+                      if(!car){
+                        current_lane = 2;
+                      }
+                      else{
+                        printf("Stuck behind a wall of slowpokes.\n");
+                      }
+                    }
+                  }
+                  else if(current_lane == 0){
+                    // Check middle lane
+                    bool car = check_lane(1, car_s, sensor_fusion);
+                    if(!car){
+                      current_lane = 1;
+                    }
+                  }
+                  else if(current_lane == 2){
+                    // Check middle lane
+                    bool car = check_lane(1, car_s, sensor_fusion);
+                    if(!car){
+                      current_lane = 1;
+                    }
+                  }
+                }
+              }
             }
 
             // Send 
