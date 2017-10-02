@@ -17,7 +17,7 @@ Then I calculate three more sparse waypoints ahead of the car, from the map wayp
 
 I then add these five waypoints to our spline, as shown on line 325 in main.cpp. But before doing so, I translate and rotate them so that the point where the car is is x=0, and the car's current heading means that increasing x results in y=0 to go straight ahead, i.e. rotate so that the angle 0 means head straight ahead. This helps with making the splines have a unique x point for each y value.
 
-To make the car's travels smooth, I load up the new path with what was leftover from the calculated path previously.
+To make the car's travels smooth, I load up the new path with what was left over from the calculated path previously.
 
 Then comes the fun part with splines. I pick a point out 30 meters ahead of the car, and calculate the spline's y value for that point. Then I calculate the direct distance to that x, y point from the 0, 0 car's position. Then I chop up that distance with 'n' points, where is calculated so that given that the simulator waits 0.02 seconds between positioning the car at each point, we're travelling at our target speed, converting from miles per hour to meters per second.
 
@@ -26,13 +26,13 @@ Then comes the fun part with splines. I pick a point out 30 meters ahead of the 
               (0.02 * current_speed_factor * 49.0/2.24);
 ```
 
-Then I simply calcuate the spline's y values for each of the x values along that path.
+Then I simply calculate the spline's y values for each of the x values along that path.
 
 I make sure to convert them back from vehicle co-ordinates back to world x, y co-ordinates, and then add them onto the end of the planned path.
 
 This results in the car following the lane, but still hitting anything in front of it, and still accelerating too fast.
 
-So, the next step is to slowly speed up when starting, so that we have a smooth ride with no jerks.
+So, the next step is to slowly speed up when starting, so that we have a smooth ride with no jerks. No one likes jerks.
 
 To do that, we define two variables, `target_speed_factor`, and `current_speed_factor`.
 
@@ -46,7 +46,7 @@ We start out with wanting to go as fast as we're allowed to, which is a factor o
 
 But we also start out going very slowly, only 10% full speed, at 0.1.
 
-And we have a couple of simple update equations to regulate our current speed:
+And we have a couple of simple update equations to regulate our current speed, which get run each update cycle:
 
 ```
 	// If our speed is too slow, speed up
@@ -82,9 +82,11 @@ To do this, we check the `sensor_fusion` given back to us from the simulator, fo
           target_speed_factor = 0.5;
 ```
 
-So first thing we do when we see another car ahead of us is slow down to half speed. This helps with not hitting the slow car ahead of us.
+We first check the 'd' value to see if the other cars is in our lane, which is +/- 2 meters of our calculated middle 'd' value. Then we check to see if the car is ahead of us using 's', and closer than 40 meters to us.
 
-Then we consider changing lanes. The logic here is pretty simple. Depending on which lane we're in, we check the available lanes to us. There are three lanes: If left, then we check right, if middle, then we check left and right, and if right, we check left.
+So the first thing we do when we see another car ahead of us is slow down to half speed. This helps with not hitting the slow car ahead of us.
+
+Then we consider changing lanes. The logic here is pretty simple. Depending on which lane we're in, we check the available lanes to us. There are three lanes: If we're in the leftmost lane, then we check the middle lane, if we're in the middle lane , then we check the leftmost and rightmost lanes, and if we're in the rightmost lane, we check check the middle lane. I've factored check_lane into a function.
 
 ```
     // Check left and right lanes, make sure nothing is in the lane
@@ -94,9 +96,9 @@ Then we consider changing lanes. The logic here is pretty simple. Depending on w
     }
 ```
 
-This simple path planning approach works surprisingly well, if there is a car in the lane where we want to change into, we simply hang back and a speed between half and full behind the slow car, and when a lane is available to change into, we change into it. 
+This simple path planning approach works surprisingly well, as if there is a car in the lane where we want to change into, we simply hang back and a speed between half and full behind the slow car, and when a lane is available to change into, we change into it.
 
-I've also added an additional safety measure, where if the car ahead of us is less than 20m ahead of us, then we slow down to 20% speed. This helps when cars have cut us off and jumped in front of our car and other unexpected situations, so slow right down when a car is very close ahead of us.
+I've also added an additional safety measure, where if a car ahead of us is less than 20m ahead of us, then we slow down to 20% speed. This helps when cars have cut us off and jumped in front of our car and other unexpected situations, to slow right down when a car is very close ahead of us.
 
 You can see the lane changing in action here.
 
@@ -104,4 +106,4 @@ You can see the lane changing in action here.
 
 The car has completed two laps of the track using this method, with a total distance with no incident of over 8 miles.
 
-The path planning approach does sometimes get stuck in situations where it is boxed in behind a car in front and to the side of it, where it could be more intellegent and slow down and go around the offending vehicles. It could also choose the lane with the most clear space ahead of it, instead of just any available lane. This is a project for another day.
+The path planning approach does sometimes get stuck in situations where it is boxed in behind a car in front and to the side of it, where it could be more intelligent and slow down and go around the offending vehicles. It could also choose the lane with the most clear space ahead of it, instead of just any available lane. This is a project for another day.
