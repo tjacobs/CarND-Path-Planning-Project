@@ -319,6 +319,7 @@ int main() {
             if(current_speed_factor < target_speed_factor) {
               current_speed_factor += 0.01;
             }
+            // If our speed is too fast, slow down
             else if(current_speed_factor > target_speed_factor) {
               current_speed_factor -= 0.01;
             }
