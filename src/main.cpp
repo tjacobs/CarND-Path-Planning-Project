@@ -310,16 +310,32 @@ int main() {
               next_y_vals.push_back(previous_path_y[i]);              
             }
 
-            // Define a path made up of (x, y) points that the car will visit sequentially every .02 seconds
-            double s_increment = 0.42 ;//* target_speed_factor;
-            for(int i=0; i<50; i++) {
-              double next_s = car_s + (i+1)*s_increment;
-              double next_d = 6;
+            // Render spline values at positions to get target speed and spliney trajectory
+            double horizon = 30.0;
+            double horizon_y = s(horizon); // Calculate spline value by just calling s().
+            double horizon_distance = sqrt(horizon*horizon + horizon_y*horizon_y); // Good old Pythag
 
-              // Map back to world X, Y
-              vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-              next_x_vals.push_back(xy[0]);
-              next_y_vals.push_back(xy[1]);
+            // Split our distance to horizon into n points 
+            double n = horizon_distance / (0.02 * 10);
+            double x_so_far = 0;
+            for(int i = 0; i <= 50 - previous_path_size; i++) {
+
+              // Caluclate this point
+              double x_point = x_so_far + horizon/n;
+              double y_point = s(x_point);
+              x_so_far = x_point;
+
+              // Rotate back to world coords
+              double x_ref = x_point;
+              double y_ref = y_point;
+              x_point = (x_ref * cos(reference_yaw) - y_ref * sin(reference_yaw));
+              y_point = (x_ref * sin(reference_yaw) - y_ref * cos(reference_yaw));
+              x_point += reference_x;
+              y_point += reference_y;
+
+              // Add 'em
+              next_x_vals.push_back(x_point);
+              next_y_vals.push_back(y_point);
             }
 
             // Send 
