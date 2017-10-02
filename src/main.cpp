@@ -192,17 +192,16 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
+  // Which lane are we in?
+  int current_lane = 1;
+
   // How fast should we be going as factor of speed limit?
   double target_speed_factor = 1.0;
 
-
-  h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s, &map_waypoints_dx, &map_waypoints_dy, &current_lane, &target_speed_factor](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
-
-    // Which lane are we in?
-    int current_lane = 1;
 
 //    auto sdata = string(data).substr(0, length);
 //    cout << sdata << endl;
@@ -316,7 +315,7 @@ int main() {
             double horizon_distance = sqrt(horizon*horizon + horizon_y*horizon_y); // Good old Pythag
 
             // Split our distance to horizon into n points 
-            double n = horizon_distance / (0.02 * 10);
+            double n = horizon_distance / (0.02 * 49.0/2.24);
             double x_so_far = 0;
             for(int i = 0; i <= 50 - previous_path_size; i++) {
 
@@ -329,7 +328,7 @@ int main() {
               double x_ref = x_point;
               double y_ref = y_point;
               x_point = (x_ref * cos(reference_yaw) - y_ref * sin(reference_yaw));
-              y_point = (x_ref * sin(reference_yaw) - y_ref * cos(reference_yaw));
+              y_point = (x_ref * sin(reference_yaw) + y_ref * cos(reference_yaw));
               x_point += reference_x;
               y_point += reference_y;
 
